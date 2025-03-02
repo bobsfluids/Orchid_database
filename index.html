@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fruit Tree Orchard Manager</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      align-items: center;
+    }
+    .search-box {
+      padding: 0.5rem;
+      width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .add-btn {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .tree-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .tree-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.3s;
+    }
+    .tree-card:hover {
+      transform: translateY(-5px);
+    }
+    .tree-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .tree-info {
+      padding: 1rem;
+    }
+    .tree-name {
+      font-size: 1.25rem;
+      margin: 0 0 0.5rem 0;
+    }
+    .tree-type {
+      color: #7f8c8d;
+      margin: 0 0 1rem 0;
+    }
+    .watering {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    .last-watered {
+      font-size: 0.9rem;
+    }
+    .water-btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 500px;
+    }
+    .close {
+      float: right;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .save-btn {
+      background-color: #27ae60;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .status-needs-water {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .status-watered {
+      color: #27ae60;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fruit Tree Orchard Manager</h1>
+  </header>
+  
+  <div class="container">
+    <div class="controls">
+      <input type="text" class="search-box" id="searchBox" placeholder="Search trees...">
+      <button class="add-btn" id="addTreeBtn">Add New Tree</button>
+    </div>
+    
+    <div class="tree-grid" id="treeGrid">
+      <!-- Tree cards will be dynamically generated here -->
+    </div>
+  </div>
+  
+  <!-- Add/Edit Tree Modal -->
+  <div id="treeModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeModal">&times;</span>
+      <h2 id="modalTitle">Add New Tree</h2>
+      <form id="treeForm">
+        <input type="hidden" id="treeId">
+        <div class="form-group">
+          <label for="treeName">Tree Name:</label>
+          <input type="text" id="treeName" required>
+        </div>
+        <div class="form-group">
+          <label for="treeType">Type:</label>
+          <select id="treeType" required>
+            <option value="">Select tree type</option>
+            <option value="apple">Apple</option>
+            <option value="pear">Pear</option>
+            <option value="peach">Peach</option>
+            <option value="plum">Plum</option>
+            <option value="cherry">Cherry</option>
+            <option value="apricot">Apricot</option>
+            <option value="fig">Fig</option>
+            <option value="persimmon">Persimmon</option>
+            <option value="citrus">Citrus</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="plantingDate">Planting Date:</label>
+          <input type="date" id="plantingDate" required>
+        </div>
+        <div class="form-group">
+          <label for="lastWatered">Last Watered:</label>
+          <input type="date" id="lastWatered" required>
+        </div>
+        <div class="form-group">
+          <label for="notes">Notes:</label>
+          <input type="text" id="notes">
+        </div>
+        <button type="submit" class="save-btn">Save Tree</button>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    // Tree data storage - using variable instead of localStorage due to sandbox restrictions
+    let trees = [
+      // Sample tree data
+      {
+        id: 'tree-sample1',
+        name: 'Honeycrisp',
+        type: 'apple',
+        plantingDate: '2023-04-15',
+        lastWatered: '2025-02-25',
+        notes: 'North corner of the orchard'
+      }
+    ];
+    const treeImages = {
+      'apple': '/api/placeholder/300/200?text=Apple+Tree',
+      'pear': '/api/placeholder/300/200?text=Pear+Tree',
+      'peach': '/api/placeholder/300/200?text=Peach+Tree',
+      'plum': '/api/placeholder/300/200?text=Plum+Tree',
+      'cherry': '/api/placeholder/300/200?text=Cherry+Tree',
+      'apricot': '/api/placeholder/300/200?text=Apricot+Tree',
+      'fig': '/api/placeholder/300/200?text=Fig+Tree',
+      'persimmon': '/api/placeholder/300/200?text=Persimmon+Tree',
+      'citrus': '/api/placeholder/300/200?text=Citrus+Tree',
+      'other': '/api/placeholder/300/200?text=Fruit+Tree'
+    };
+    
+    // DOM elements
+    const treeGrid = document.getElementById('treeGrid');
+    const addTreeBtn = document.getElementById('addTreeBtn');
+    const treeModal = document.getElementById('treeModal');
+    const closeModal = document.getElementById('closeModal');
+    const treeForm = document.getElementById('treeForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const searchBox = document.getElementById('searchBox');
+    
+    // Create UUID for tree IDs
+    function generateId() {
+      return 'tree-' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Format date as YYYY-MM-DD for inputs
+    function formatDateForInput(date) {
+      const d = new Date(date);
+      return d.toISOString().split('T')[0];
+    }
+    
+    // Calculate days since last watered
+    function daysSinceWatered(lastWateredDate) {
+      const today = new Date();
+      const lastDate = new Date(lastWateredDate);
+      const diffTime = Math.abs(today - lastDate);
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    
+    // Render all trees to the grid
+    function renderTrees(treesToRender = trees) {
+      treeGrid.innerHTML = '';
+      
+      if (treesToRender.length === 0) {
+        treeGrid.innerHTML = '<p>No trees added yet. Click "Add New Tree" to get started!</p>';
+        return;
+      }
+      
+      treesToRender.forEach(tree => {
+        const days = daysSinceWatered(tree.lastWatered);
+        const needsWater = days > 7; // Assuming trees need water after 7 days
+        
+        const card = document.createElement('div');
+        card.className = 'tree-card';
+        card.innerHTML = `
+          <img src="${treeImages[tree.type]}" alt="${tree.name}" class="tree-img">
+          <div class="tree-info">
+            <h3 class="tree-name">${tree.name}</h3>
+            <p class="tree-type">${tree.type.charAt(0).toUpperCase() + tree.type.slice(1)}</p>
+            <p>Planted: ${new Date(tree.plantingDate).toLocaleDateString()}</p>
+            <p>${tree.notes || ''}</p>
+            <div class="watering">
+              <span class="last-watered ${needsWater ? 'status-needs-water' : 'status-watered'}">
+                ${needsWater ? 'Needs water!' : 'Watered'} ${days} day${days !== 1 ? 's' : ''} ago
+              </span>
+              <button class="water-btn" data-id="${tree.id}">Water</button>
+            </div>
+          </div>
+        `;
+        treeGrid.appendChild(card);
+        
+        // Edit tree when clicking on the card (except water button)
+        card.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('water-btn')) {
+            openEditModal(tree);
+          }
+        });
+      });
+      
+      // Add water button event listeners
+      document.querySelectorAll('.water-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          waterTree(btn.dataset.id);
+        });
+      });
+    }
+    
+    // Water a tree
+    function waterTree(treeId) {
+      const treeIndex = trees.findIndex(t => t.id === treeId);
+      if (treeIndex !== -1) {
+        trees[treeIndex].lastWatered = new Date().toISOString().split('T')[0];
+        saveTreesAndRender();
+      }
+    }
+    
+    // Open modal to add a new tree
+    function openAddModal() {
+      modalTitle.textContent = 'Add New Tree';
+      treeForm.reset();
+      document.getElementById('treeId').value = '';
+      document.getElementById('plantingDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('lastWatered').value = new Date().toISOString().split('T')[0];
+      treeModal.style.display = 'block';
+    }
+    
+    // Open modal to edit an existing tree
+    function openEditModal(tree) {
+      modalTitle.textContent = 'Edit Tree';
+      document.getElementById('treeId').value = tree.id;
+      document.getElementById('treeName').value = tree.name;
+      document.getElementById('treeType').value = tree.type;
+      document.getElementById('plantingDate').value = formatDateForInput(tree.plantingDate);
+      document.getElementById('lastWatered').value = formatDateForInput(tree.lastWatered);
+      document.getElementById('notes').value = tree.notes || '';
+      treeModal.style.display = 'block';
+    }
+    
+    // Close the modal
+    function closeTreeModal() {
+      treeModal.style.display = 'none';
+    }
+    
+    // Save tree data from the form
+    function saveTree(e) {
+      e.preventDefault();
+      
+      const treeId = document.getElementById('treeId').value;
+      const treeName = document.getElementById('treeName').value;
+      const treeType = document.getElementById('treeType').value;
+      const plantingDate = document.getElementById('plantingDate').value;
+      const lastWatered = document.getElementById('lastWatered').value;
+      const notes = document.getElementById('notes').value;
+      
+      if (treeId) {
+        // Update existing tree
+        const treeIndex = trees.findIndex(t => t.id === treeId);
+        if (treeIndex !== -1) {
+          trees[treeIndex] = {
+            ...trees[treeIndex],
+            name: treeName,
+            type: treeType,
+            plantingDate,
+            lastWatered,
+            notes
+          };
+        }
+      } else {
+        // Add new tree
+        trees.push({
+          id: generateId(),
+          name: treeName,
+          type: treeType,
+          plantingDate,
+          lastWatered,
+          notes
+        });
+      }
+      
+      saveTreesAndRender();
+      closeTreeModal();
+    }
+    
+    // Filter trees based on search input
+    function filterTrees() {
+      const searchTerm = searchBox.value.toLowerCase();
+      if (!searchTerm) {
+        renderTrees();
+        return;
+      }
+      
+      const filteredTrees = trees.filter(tree => 
+        tree.name.toLowerCase().includes(searchTerm) || 
+        tree.type.toLowerCase().includes(searchTerm) ||
+        (tree.notes && tree.notes.toLowerCase().includes(searchTerm))
+      );
+      renderTrees(filteredTrees);
+    }
+    
+    // Save trees and re-render (removed localStorage due to sandbox restrictions)
+    function saveTreesAndRender() {
+      // In a real app, we would save to localStorage or a server here
+      // but we're just updating the UI in this sandboxed environment
+      renderTrees();
+    }
+    
+    // Event Listeners
+    addTreeBtn.addEventListener('click', openAddModal);
+    closeModal.addEventListener('click', closeTreeModal);
+    treeForm.addEventListener('submit', saveTree);
+    searchBox.addEventListener('input', filterTrees);
+    
+    // Click outside modal to close
+    window.addEventListener('click', (e) => {
+      if (e.target === treeModal) {
+        closeTreeModal();
+      }
+    });
+    
+    // Initialize
+    renderTrees();
+  </script>
+</body>
+</html>
